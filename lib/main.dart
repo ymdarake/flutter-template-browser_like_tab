@@ -45,7 +45,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Offset _offset = Offset(0, 20);
+  Offset _offset = Offset.zero;
+  double _elevation = 1.0;
   double _opacity = 0.00;
   int space = 20;
 
@@ -78,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ..setEntry(3, 2, 0.001)
                       ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
                     child: Card(
-                        elevation: 8,
+                        elevation: 8 * _elevation,
                         color: Theme.of(context).primaryColorDark,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
@@ -93,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ..setEntry(3, 2, 0.001)
                       ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
                     child: Card(
-                        elevation: 12,
+                        elevation: 12 * _elevation,
                         color: Theme.of(context).primaryColor,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
@@ -104,17 +105,13 @@ class _MyHomePageState extends State<MyHomePage> {
             Positioned(
                 top: math.max(20.0+space*2, math.min(_offset.dy * 1.4 + space * 2, 180)),
                 child: GestureDetector(
-                  onVerticalDragDown: (DragDownDetails detail) {
-                    print(detail.globalPosition.dy);
-                  },
                   onVerticalDragUpdate: (DragUpdateDetails detail) {
-                    print(detail.globalPosition.dy);
                     setState(() {
                       _offset += detail.delta;
+                      _elevation = _offset.dy < 100 ? 1 : 0;
                     });
                   },
                   onVerticalDragEnd: (DragEndDetails detail) {
-                    print(detail.velocity);
                   },
                   onTap: () {
                     setState(() {
@@ -126,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ..setEntry(3, 2, 0.001)
                         ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
                       child: Card(
-                          elevation: 16,
+                          elevation: 16 * _elevation,
                           color: Theme.of(context).primaryColorLight,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
