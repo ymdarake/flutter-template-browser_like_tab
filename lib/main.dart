@@ -4,21 +4,11 @@ import 'dart:math' as math;
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
@@ -29,15 +19,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -47,94 +28,81 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Offset _offset = Offset.zero;
   double _elevation = 1.0;
-  double _opacity = 0.00;
+  bool isTabListMode = true;
   int space = 20;
+  List colors = [];
 
   @override
   Widget build(BuildContext context) {
+    colors = [Theme.of(context).primaryColorDark, Theme.of(context).primaryColor, Theme.of(context).primaryColorLight];
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-                top: 0,
-                child: Opacity(
-                    opacity: _opacity,
-                    child: Card(
-                      elevation: 0,
-                      color: Colors.red,
-                      child: Container(
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height,
-                      ),
-                    ))),
-            Positioned(
-                top: 20,
-                child: Transform(
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001)
-                      ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
-                    child: Card(
-                        elevation: 8 * _elevation,
-                        color: Theme.of(context).primaryColorDark,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Container(
-                          width: 240,
-                          height: 300,
-                        )))),
-            Positioned(
-                top: math.max(20.0+space, math.min(_offset.dy * 1.2 + space, 120)),
-                child: Transform(
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001)
-                      ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
-                    child: Card(
-                        elevation: 12 * _elevation,
-                        color: Theme.of(context).primaryColor,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Container(
-                          width: 240,
-                          height: 300,
-                        )))),
-            Positioned(
-                top: math.max(20.0+space*2, math.min(_offset.dy * 1.4 + space * 2, 180)),
-                child: GestureDetector(
-                  onVerticalDragUpdate: (DragUpdateDetails detail) {
-                    setState(() {
-                      _offset += detail.delta;
-                      _elevation = _offset.dy < 100 ? 1 : 0;
-                    });
-                  },
-                  onVerticalDragEnd: (DragEndDetails detail) {
-                  },
-                  onTap: () {
-                    setState(() {
-                      _opacity = _opacity == 0.00 ? 1.0 : 0.00;
-                    });
-                  },
-                  child: Transform(
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.001)
-                        ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
-                      child: Card(
-                          elevation: 16 * _elevation,
-                          color: Theme.of(context).primaryColorLight,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Container(
-                            width: 240,
-                            height: 300,
-                          ))),
-                ))
-          ],
-        ),
-      ),
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return ScaleTransition(
+              scale: animation,
+              child: child,
+            );
+          },
+          child: _getContent()),
     );
+  }
+
+  Widget _getContent() {
+    return isTabListMode
+        ? _buildTabList()
+        : GestureDetector(
+            child: Text("Hi"),
+            onTap: () {
+              setState(() {
+                isTabListMode = !isTabListMode;
+              });
+            });
+  }
+
+  Widget _buildTabList() {
+    return Stack(
+      children: <Widget>[
+        _buildCard(0),
+        _buildCard(1),
+        _buildCard(2)
+      ],
+    );
+  }
+
+  Widget _buildCard(int cardIndex) {
+    return Positioned(
+        top: math.max(
+            20.0 + space * cardIndex, math.min(_offset.dy * (1 + 0.2 * cardIndex) + space * cardIndex, 60*(cardIndex+1.0))),
+        child: GestureDetector(
+          onVerticalDragUpdate: (DragUpdateDetails detail) {
+            setState(() {
+              _offset += detail.delta;
+              _elevation = _offset.dy < 100 ? 1 : 0;
+            });
+          },
+          onVerticalDragEnd: (DragEndDetails detail) {},
+          onTap: () {
+            setState(() {
+              isTabListMode = !isTabListMode;
+            });
+          },
+          child: Transform(
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX(0.01 * math.max(0, math.min(_offset.dy, 60))),
+              child: Card(
+                  elevation: 4 * (cardIndex + 2) * _elevation,
+                  color: colors[cardIndex % colors.length],
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Container(
+                    width: 240,
+                    height: 300,
+                  ))),
+        ));
   }
 }
