@@ -7,8 +7,10 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
-  final double topMargin = 20.0;
   final double adHeight = 60.0;
+  PageController pageController = PageController();
+  Animation<double> iconAnimation;
+  AnimationController iconAnimationController;
 
   List pages;
   void _initializePages() {
@@ -19,6 +21,20 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    pageController = PageController();
+    iconAnimationController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+    iconAnimation =
+        Tween(begin: 0.0, end: 1.0).animate(iconAnimationController);
+  }
+
+  @override
+  void dispose() {
+    pageController.dispose();
+    iconAnimationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -29,14 +45,37 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       appBar: AppBar(
         title: Text('Hello!'),
         elevation: 0,
-        leading: Icon(
-          Icons.menu,
-          size: 30,
+        leading: GestureDetector(
+          onTap: () {
+            var nextPage = pageController.page == 0.0 ? 1 : 0;
+            if (nextPage == 0)
+              iconAnimationController.reverse();
+            else
+              iconAnimationController.forward();
+            pageController.animateToPage(
+              nextPage,
+              curve: Curves.easeIn,
+              duration: Duration(
+                milliseconds: 800,
+              ),
+            );
+          },
+          child: AnimatedIcon(
+            progress: iconAnimation,
+            icon: AnimatedIcons.menu_close,
+            size: 30,
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       backgroundColor: Theme.of(context).colorScheme.primary,
       body: PageView.builder(
+        onPageChanged: (int page) {
+          page == 0
+              ? iconAnimationController.reverse()
+              : iconAnimationController.forward();
+        },
+        controller: pageController,
         itemBuilder: (context, position) => pages[position],
         itemCount: pages.length,
         scrollDirection: Axis.vertical,
@@ -50,7 +89,6 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         Expanded(
           child: Container(
             width: MediaQuery.of(context).size.width,
-            margin: EdgeInsets.only(top: topMargin),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.only(
