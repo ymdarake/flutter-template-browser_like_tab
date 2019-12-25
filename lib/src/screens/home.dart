@@ -27,7 +27,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         parent: tabAnimationController,
       ),
     );
-    adAnimation = Tween(begin: -adHeight, end: bottomSheetHeight).animate(
+    adAnimation = Tween(begin: 0.0, end: bottomSheetHeight).animate(
       CurvedAnimation(
         curve: Curves.easeInOut,
         parent: tabAnimationController,
@@ -81,7 +81,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       animation: tabAnimation,
       child: Container(
         width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height - 30 - appBarHeight,
+        height:
+            MediaQuery.of(context).size.height - 30 - appBarHeight - adHeight,
         margin: EdgeInsets.only(top: 30),
         decoration: BoxDecoration(
           boxShadow: _buildTabShadow(),
