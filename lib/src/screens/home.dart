@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -6,14 +7,14 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
-  Animation<double> tabAnimation;
-  AnimationController tabAnimationController;
-  final double toolbarHeight = 20.0; // TODO: calc.
   final double topMargin = 20.0;
   final double adHeight = 60.0;
-  double bottomSheetHeight;
-  final double appBarHeight = 32.0;
-  final double bottomNavigationBarHeight = 60.0;
+
+  List pages;
+  void _initializePages() {
+    if (pages != null) return;
+    pages = [_buildTab(), _buildBottomSheet()];
+  }
 
   @override
   void initState() {
@@ -22,76 +23,52 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    _initializeAnimation();
+    _initializePages();
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(appBarHeight),
-        child: AppBar(
-          title: Text('Hello!'),
-          elevation: 0,
-          leading: Icon(
-            Icons.menu,
-            size: 30,
-          ),
+      appBar: AppBar(
+        title: Text('Hello!'),
+        elevation: 0,
+        leading: Icon(
+          Icons.menu,
+          size: 30,
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       backgroundColor: Theme.of(context).colorScheme.primary,
-      body: _buildTab(),
+      body: PageView.builder(
+        itemBuilder: (context, position) => pages[position],
+        itemCount: pages.length,
+        scrollDirection: Axis.vertical,
+      ),
     );
   }
 
   Widget _buildTab() {
-    return GestureDetector(
-        onVerticalDragDown: null,
-        onVerticalDragUpdate: _handleDragUpdate,
-        child: Stack(
-          children: <Widget>[
-            _buildTabAnimation(),
-          ],
-        ));
-  }
-
-  Widget _buildTabAnimation() {
-    return AnimatedBuilder(
-      animation: tabAnimation,
-      builder: (context, child) {
-        return Positioned(
-          top: tabAnimation.value,
-          child: Column(
-            children: <Widget>[
-              Container(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height -
-                    toolbarHeight -
-                    topMargin -
-                    adHeight -
-                    appBarHeight -
-                    bottomNavigationBarHeight,
-                margin: EdgeInsets.only(top: topMargin),
-                decoration: BoxDecoration(
-                  boxShadow: _buildTabShadow(),
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(27.0),
-                    topRight: Radius.circular(27.0),
-                  ),
-                ),
-                child: Column(
-                  children: <Widget>[
-                    Text('Hi!'),
-                    Text('Hi!'),
-                    Text('Hi!'),
-                  ],
-                ),
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            margin: EdgeInsets.only(top: topMargin),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(27.0),
+                topRight: Radius.circular(27.0),
               ),
-              _buildAd(),
-              _buildBottomSheet(),
-            ],
+            ),
+            child: Column(
+              children: <Widget>[
+                Text('Hi!'),
+                Text('Hi!'),
+                Text('Hi!'),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+        _buildAd(),
+      ],
     );
   }
 
@@ -115,7 +92,6 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   Widget _buildBottomSheet() {
     return Container(
       width: MediaQuery.of(context).size.width,
-      height: bottomSheetHeight,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.error,
       ),
@@ -133,33 +109,22 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildBottomNavigationBar() {
-    return SizedBox(
-      height: bottomNavigationBarHeight,
-      child: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            title: Text('Calendar'),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            title: Text('Caht'),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            title: Text('Settings'),
-          ),
-        ],
-      ),
+    return BottomNavigationBar(
+      items: <BottomNavigationBarItem>[
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today),
+          title: Text('Calendar'),
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat),
+          title: Text('Caht'),
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings),
+          title: Text('Settings'),
+        ),
+      ],
     );
-  }
-
-  _handleDragUpdate(DragUpdateDetails details) {
-    if (details.delta.dy < 0) {
-      tabAnimationController.forward();
-    } else {
-      tabAnimationController.reverse();
-    }
   }
 
   List<BoxShadow> _buildTabShadow() {
@@ -174,28 +139,5 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         ),
       ),
     ];
-  }
-
-  _initializeAnimation() {
-    if (tabAnimation != null) return;
-
-    bottomSheetHeight = MediaQuery.of(context).size.height;
-    tabAnimationController = AnimationController(
-      duration: Duration(milliseconds: 300),
-      vsync: this,
-    );
-    tabAnimation = Tween(
-            begin: 0.0,
-            end: -bottomSheetHeight +
-                adHeight +
-                appBarHeight +
-                toolbarHeight +
-                topMargin)
-        .animate(
-      CurvedAnimation(
-        curve: Curves.easeInOut,
-        parent: tabAnimationController,
-      ),
-    );
   }
 }
