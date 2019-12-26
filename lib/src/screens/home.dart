@@ -6,11 +6,15 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
+class _HomeState extends State<Home> with TickerProviderStateMixin {
   final double adHeight = 60.0;
   PageController pageController = PageController();
   Animation<double> iconAnimation;
   AnimationController iconAnimationController;
+  Animation<double> tabListAnimation;
+  Animation<double> tabListOpacityAnimation;
+  AnimationController tabListAnimationController;
+  double dragDeltaY = 0.0;
 
   List pages;
   void _initializePages() {
@@ -28,6 +32,14 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     );
     iconAnimation =
         Tween(begin: 0.0, end: 1.0).animate(iconAnimationController);
+    tabListAnimationController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+    tabListAnimation =
+        Tween(begin: 0.0, end: 200.0).animate(tabListAnimationController);
+    tabListOpacityAnimation =
+        Tween(begin: 0.0, end: 1.0).animate(tabListAnimationController);
   }
 
   @override
@@ -48,10 +60,9 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         leading: GestureDetector(
           onTap: () {
             var nextPage = pageController.page == 0.0 ? 1 : 0;
-            if (nextPage == 0)
-              iconAnimationController.reverse();
-            else
-              iconAnimationController.forward();
+            nextPage == 0
+                ? iconAnimationController.reverse()
+                : iconAnimationController.forward();
             pageController.animateToPage(
               nextPage,
               curve: Curves.easeIn,
@@ -87,22 +98,34 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     return Column(
       children: <Widget>[
         Expanded(
-          child: Container(
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(27.0),
-                topRight: Radius.circular(27.0),
+          child: Stack(
+            overflow: Overflow.visible,
+            children: [
+              // TODO:create dynamically
+              AnimatedBuilder(
+                animation: tabListAnimation,
+                builder: (context, child) {
+                  return Positioned(
+                    top: tabListAnimation.value - 100,
+                    bottom: -tabListAnimation.value - 100,
+                    child: Opacity(
+                        opacity: tabListOpacityAnimation.value, child: child,),
+                  );
+                },
+                child: _buildTabContent(context),
               ),
-            ),
-            child: Column(
-              children: <Widget>[
-                Text('Hi!'),
-                Text('Hi!'),
-                Text('Hi!'),
-              ],
-            ),
+              AnimatedBuilder(
+                animation: tabListAnimation,
+                builder: (context, child) {
+                  return Positioned(
+                    top: tabListAnimation.value,
+                    bottom: -tabListAnimation.value,
+                    child: child,
+                  );
+                },
+                child: _buildTabContent(context),
+              ),
+            ],
           ),
         ),
         _buildAd(),
@@ -165,6 +188,40 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     );
   }
 
+  Widget _buildTabContent(context) {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(27.0),
+          topRight: Radius.circular(27.0),
+        ),
+        boxShadow: _buildTabShadow(),
+      ),
+      child: Column(
+        children: <Widget>[
+          GestureDetector(
+            onVerticalDragUpdate: (DragUpdateDetails details) {
+              dragDeltaY += details.delta.dy;
+              if (dragDeltaY.abs() < 10.0) return;
+              dragDeltaY > 0 ? _renderTabList() : _resetTabPosition();
+              dragDeltaY = 0.0;
+            },
+            child: Container(
+              height: 60,
+              child: Text('Drag Area'),
+              color: Colors.grey,
+            ),
+          ),
+          Text('Hi!'),
+          Text('Hi!'),
+          Text('Hi!'),
+        ],
+      ),
+    );
+  }
+
   List<BoxShadow> _buildTabShadow() {
     return <BoxShadow>[
       BoxShadow(
@@ -177,5 +234,13 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         ),
       ),
     ];
+  }
+
+  void _renderTabList() {
+    tabListAnimationController.forward();
+  }
+
+  void _resetTabPosition() {
+    tabListAnimationController.reverse();
   }
 }
