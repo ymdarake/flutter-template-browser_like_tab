@@ -15,6 +15,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   Animation<double> tabListOpacityAnimation;
   AnimationController tabListAnimationController;
   double dragDeltaY = 0.0;
+  int currentIndex = 0;
+  double tabDistance = 60.0;
+
+  // DEBUG:
+  List<Color> colors = [Colors.white, Colors.white70, Colors.white30];
 
   List pages;
   void _initializePages() {
@@ -37,7 +42,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       vsync: this,
     );
     tabListAnimation =
-        Tween(begin: 0.0, end: 200.0).animate(tabListAnimationController);
+        Tween(begin: 0.0, end: tabDistance).animate(tabListAnimationController);
     tabListOpacityAnimation =
         Tween(begin: 0.0, end: 1.0).animate(tabListAnimationController);
   }
@@ -105,25 +110,23 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               AnimatedBuilder(
                 animation: tabListAnimation,
                 builder: (context, child) {
-                  return Positioned(
-                    top: tabListAnimation.value - 100,
-                    bottom: -tabListAnimation.value - 100,
-                    child: Opacity(
-                        opacity: tabListOpacityAnimation.value, child: child,),
-                  );
+                  return _buildPositioned(child, 0);
                 },
-                child: _buildTabContent(context),
+                child: _buildTabContent(context, 0),
               ),
               AnimatedBuilder(
                 animation: tabListAnimation,
                 builder: (context, child) {
-                  return Positioned(
-                    top: tabListAnimation.value,
-                    bottom: -tabListAnimation.value,
-                    child: child,
-                  );
+                  return _buildPositioned(child, 1);
                 },
-                child: _buildTabContent(context),
+                child: _buildTabContent(context, 1),
+              ),
+              AnimatedBuilder(
+                animation: tabListAnimation,
+                builder: (context, child) {
+                  return _buildPositioned(child, 2);
+                },
+                child: _buildTabContent(context, 2),
               ),
             ],
           ),
@@ -188,11 +191,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTabContent(context) {
+  Widget _buildTabContent(BuildContext context, int index) {
     return Container(
       width: MediaQuery.of(context).size.width,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colors[index], // DEBUG: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(27.0),
           topRight: Radius.circular(27.0),
@@ -202,11 +205,16 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       child: Column(
         children: <Widget>[
           GestureDetector(
+            onTap: () {
+              currentIndex = index;
+              _resetTabPosition();
+            },
             onVerticalDragUpdate: (DragUpdateDetails details) {
               dragDeltaY += details.delta.dy;
-              if (dragDeltaY.abs() < 10.0) return;
-              dragDeltaY > 0 ? _renderTabList() : _resetTabPosition();
+              if (dragDeltaY < 10.0) return;
               dragDeltaY = 0.0;
+              currentIndex = -1;
+              _renderTabList();
             },
             child: Container(
               height: 60,
@@ -241,6 +249,30 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   void _resetTabPosition() {
+    print(currentIndex);
     tabListAnimationController.reverse();
+  }
+
+  Widget _buildPositioned(Widget child, int index) {
+    return Positioned(
+      top: _getTabTopPosition(index),
+      bottom: _getTabBottomPosition(index),
+      child: index != currentIndex
+          ? Opacity(
+              opacity: tabListOpacityAnimation.value,
+              child: child,
+            )
+          : child,
+    );
+  }
+
+  double _getTabTopPosition(int index) {
+    if (index == currentIndex) return 0.0;
+    return tabListAnimation.value - tabDistance + (index * tabDistance);
+  }
+
+  double _getTabBottomPosition(int index) {
+    if (index == currentIndex) return 0.0;
+    return -tabListAnimation.value - tabDistance + (index * tabDistance);
   }
 }
