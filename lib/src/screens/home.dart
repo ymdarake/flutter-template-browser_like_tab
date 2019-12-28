@@ -6,25 +6,44 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
+const double tabDistance = 60.0;
+int currentIndex = 0;
+
 class _HomeState extends State<Home> with TickerProviderStateMixin {
   final double adHeight = 60.0;
   PageController pageController = PageController();
   Animation<double> iconAnimation;
   AnimationController iconAnimationController;
-  Animation<double> tabListAnimation;
-  Animation<double> tabListOpacityAnimation;
-  AnimationController tabListAnimationController;
-  double dragDeltaY = 0.0;
-  int currentIndex = 0;
-  double tabDistance = 60.0;
 
-  // DEBUG:
-  List<Color> colors = [Colors.white, Colors.white70, Colors.white30];
-
+  List<BrowserLikeTab> tabs; // 最初にTermの合計数を取得しておいて、それだけ空の箱を用意しておく?
   List pages;
   void _initializePages() {
     if (pages != null) return;
-    pages = [_buildTab(), _buildBottomSheet()];
+    pages = [_buildMain(), _buildBottomSheet()];
+  }
+
+  void _initializeTabs() {
+    if (tabs != null) return;
+    tabs = [
+      BrowserLikeTab(),
+      BrowserLikeTab(),
+      BrowserLikeTab(),
+    ];
+    // TODO: cannot mutate (these widgets are immutable)
+    // for (var i = 0; i < tabs.length; ++i) {
+    //   final tab = tabs[i];
+    //   tab.onTopBarTap = () {
+    //     currentIndex = i;
+    //     tabs.forEach((t) {
+    //       t.goToSurfaceOrHide();
+    //     });
+    //   };
+    //   tab.onDraggedDown = () {
+    //     tabs.forEach((t) {
+    //       t.goToDraggDownPosition();
+    //     });
+    //   };
+    // }
   }
 
   @override
@@ -37,14 +56,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     );
     iconAnimation =
         Tween(begin: 0.0, end: 1.0).animate(iconAnimationController);
-    tabListAnimationController = AnimationController(
-      duration: Duration(milliseconds: 200),
-      vsync: this,
-    );
-    tabListAnimation =
-        Tween(begin: 0.0, end: tabDistance).animate(tabListAnimationController);
-    tabListOpacityAnimation =
-        Tween(begin: 0.0, end: 1.0).animate(tabListAnimationController);
   }
 
   @override
@@ -56,6 +67,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    _initializeTabs();
     _initializePages();
 
     return Scaffold(
@@ -99,36 +111,13 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTab() {
+  Widget _buildMain() {
     return Column(
       children: <Widget>[
         Expanded(
           child: Stack(
             overflow: Overflow.visible,
-            children: [
-              // TODO:create dynamically
-              AnimatedBuilder(
-                animation: tabListAnimation,
-                builder: (context, child) {
-                  return _buildPositioned(child, 0);
-                },
-                child: _buildTabContent(context, 0),
-              ),
-              AnimatedBuilder(
-                animation: tabListAnimation,
-                builder: (context, child) {
-                  return _buildPositioned(child, 1);
-                },
-                child: _buildTabContent(context, 1),
-              ),
-              AnimatedBuilder(
-                animation: tabListAnimation,
-                builder: (context, child) {
-                  return _buildPositioned(child, 2);
-                },
-                child: _buildTabContent(context, 2),
-              ),
-            ],
+            children: tabs,
           ),
         ),
         _buildAd(),
@@ -190,12 +179,60 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       ],
     );
   }
+}
 
-  Widget _buildTabContent(BuildContext context, int index) {
+class BrowserLikeTab extends StatefulWidget {
+  final void Function() onTopBarTap;
+  final void Function() onDragDown;
+  final int index;
+
+  BrowserLikeTab({this.onTopBarTap, this.onDragDown, this.index});
+
+  @override
+  _BrowserLikeTabState createState() => _BrowserLikeTabState();
+}
+
+class _BrowserLikeTabState extends State<BrowserLikeTab>
+    with SingleTickerProviderStateMixin {
+  Animation<double> tabListAnimation;
+  AnimationController tabListAnimationController;
+  double dragDeltaY = 0.0;
+
+  // DEBUG:
+  List<Color> colors = [Colors.white, Colors.white70, Colors.white30];
+
+  @override
+  void initState() {
+    super.initState();
+    tabListAnimationController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+    tabListAnimation =
+        Tween(begin: 0.0, end: tabDistance).animate(tabListAnimationController);
+  }
+
+// must be wrapped by Stack
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: tabListAnimation,
+      builder: (context, child) {
+        return Positioned(
+          top: _getTabTopPosition(currentIndex),
+          bottom: _getTabBottomPosition(currentIndex),
+          child: child,
+        );
+      },
+      child: _buildTabContent(context),
+    );
+  }
+
+  Widget _buildTabContent(BuildContext context) {
     return Container(
       width: MediaQuery.of(context).size.width,
       decoration: BoxDecoration(
-        color: colors[index], // DEBUG: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(27.0),
           topRight: Radius.circular(27.0),
@@ -206,15 +243,15 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         children: <Widget>[
           GestureDetector(
             onTap: () {
-              currentIndex = index;
-              _resetTabPosition();
-            },
+              currentIndex = widget.index;
+              widget.onTopBarTap();
+            }, // update currentIndex and notify all children
             onVerticalDragUpdate: (DragUpdateDetails details) {
               dragDeltaY += details.delta.dy;
               if (dragDeltaY < 10.0) return;
               dragDeltaY = 0.0;
               currentIndex = -1;
-              _renderTabList();
+              widget.onDragDown();
             },
             child: Container(
               height: 60,
@@ -228,6 +265,16 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  double _getTabTopPosition(int currentIndex) {
+    if (widget.index == currentIndex) return 0.0;
+    return tabListAnimation.value - tabDistance + (widget.index * tabDistance);
+  }
+
+  double _getTabBottomPosition(int currentIndex) {
+    if (widget.index == currentIndex) return 0.0;
+    return -tabListAnimation.value - tabDistance + (widget.index * tabDistance);
   }
 
   List<BoxShadow> _buildTabShadow() {
@@ -244,35 +291,15 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     ];
   }
 
-  void _renderTabList() {
-    tabListAnimationController.forward();
-  }
-
-  void _resetTabPosition() {
-    print(currentIndex);
+  // interface
+  void goToSurfaceOrHide() {
+    if (widget.index < currentIndex) return;
     tabListAnimationController.reverse();
   }
 
-  Widget _buildPositioned(Widget child, int index) {
-    return Positioned(
-      top: _getTabTopPosition(index),
-      bottom: _getTabBottomPosition(index),
-      child: index != currentIndex
-          ? Opacity(
-              opacity: tabListOpacityAnimation.value,
-              child: child,
-            )
-          : child,
-    );
-  }
-
-  double _getTabTopPosition(int index) {
-    if (index == currentIndex) return 0.0;
-    return tabListAnimation.value - tabDistance + (index * tabDistance);
-  }
-
-  double _getTabBottomPosition(int index) {
-    if (index == currentIndex) return 0.0;
-    return -tabListAnimation.value - tabDistance + (index * tabDistance);
+  // interface
+  void goToDraggDownPosition() {
+    if (widget.index < currentIndex) return;
+    tabListAnimationController.reverse();
   }
 }
