@@ -15,36 +15,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   Animation<double> iconAnimation;
   AnimationController iconAnimationController;
 
-  List<BrowserLikeTab> tabs; // 最初にTermの合計数を取得しておいて、それだけ空の箱を用意しておく?
-  List pages;
-  void _initializePages() {
-    if (pages != null) return;
-    pages = [_buildMain(), _buildBottomSheet()];
-  }
+  bool isTimetableVisible = true;
 
-  void _initializeTabs() {
-    if (tabs != null) return;
-    tabs = [
-      BrowserLikeTab(),
-      BrowserLikeTab(),
-      BrowserLikeTab(),
-    ];
-    // TODO: cannot mutate (these widgets are immutable)
-    // for (var i = 0; i < tabs.length; ++i) {
-    //   final tab = tabs[i];
-    //   tab.onTopBarTap = () {
-    //     currentIndex = i;
-    //     tabs.forEach((t) {
-    //       t.goToSurfaceOrHide();
-    //     });
-    //   };
-    //   tab.onDraggedDown = () {
-    //     tabs.forEach((t) {
-    //       t.goToDraggDownPosition();
-    //     });
-    //   };
-    // }
-  }
+  List tabs; // 最初にTermの合計数を取得しておいて、それだけ空の箱を用意しておく?
 
   @override
   void initState() {
@@ -67,9 +40,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    _initializeTabs();
-    _initializePages();
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Hello!'),
@@ -104,8 +74,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               : iconAnimationController.forward();
         },
         controller: pageController,
-        itemBuilder: (context, position) => pages[position],
-        itemCount: pages.length,
+        itemBuilder: (context, position) =>
+            [_buildMain(), _buildBottomSheet()][position],
+        itemCount: 2,
         scrollDirection: Axis.vertical,
       ),
     );
@@ -117,7 +88,29 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         Expanded(
           child: Stack(
             overflow: Overflow.visible,
-            children: tabs,
+            children: [
+              _buildTermHeadersSheet(),
+              AnimatedPositioned(
+                top: isTimetableVisible ? 0 : 600,
+                duration: Duration(milliseconds: 1000),
+                curve: Curves.easeIn,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      isTimetableVisible = !isTimetableVisible;
+                    });
+                  },
+                  child: Container(
+                    height: MediaQuery.of(context).size.height - adHeight,
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                        color:
+                            isTimetableVisible ? Colors.white : Colors.purple),
+                    child: Center(child: Text("時間割表")),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         _buildAd(),
@@ -179,127 +172,32 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       ],
     );
   }
-}
 
-class BrowserLikeTab extends StatefulWidget {
-  final void Function() onTopBarTap;
-  final void Function() onDragDown;
-  final int index;
-
-  BrowserLikeTab({this.onTopBarTap, this.onDragDown, this.index});
-
-  @override
-  _BrowserLikeTabState createState() => _BrowserLikeTabState();
-}
-
-class _BrowserLikeTabState extends State<BrowserLikeTab>
-    with SingleTickerProviderStateMixin {
-  Animation<double> tabListAnimation;
-  AnimationController tabListAnimationController;
-  double dragDeltaY = 0.0;
-
-  // DEBUG:
-  List<Color> colors = [Colors.white, Colors.white70, Colors.white30];
-
-  @override
-  void initState() {
-    super.initState();
-    tabListAnimationController = AnimationController(
-      duration: Duration(milliseconds: 200),
-      vsync: this,
-    );
-    tabListAnimation =
-        Tween(begin: 0.0, end: tabDistance).animate(tabListAnimationController);
-  }
-
-// must be wrapped by Stack
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: tabListAnimation,
-      builder: (context, child) {
-        return Positioned(
-          top: _getTabTopPosition(currentIndex),
-          bottom: _getTabBottomPosition(currentIndex),
-          child: child,
-        );
-      },
-      child: _buildTabContent(context),
-    );
-  }
-
-  Widget _buildTabContent(BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(27.0),
-          topRight: Radius.circular(27.0),
-        ),
-        boxShadow: _buildTabShadow(),
-      ),
-      child: Column(
-        children: <Widget>[
-          GestureDetector(
-            onTap: () {
-              currentIndex = widget.index;
-              widget.onTopBarTap();
-            }, // update currentIndex and notify all children
-            onVerticalDragUpdate: (DragUpdateDetails details) {
-              dragDeltaY += details.delta.dy;
-              if (dragDeltaY < 10.0) return;
-              dragDeltaY = 0.0;
-              currentIndex = -1;
-              widget.onDragDown();
-            },
-            child: Container(
-              height: 60,
-              child: Text('Drag Area'),
-              color: Colors.grey,
-            ),
+  Widget _buildTermHeadersSheet() {
+    return AnimatedPositioned(
+      duration: Duration(milliseconds: 1000),
+      curve: Curves.easeIn,
+      top: isTimetableVisible ? 600 : 0,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            isTimetableVisible = !isTimetableVisible;
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(color: Colors.amber),
+          child: Column(
+            children: <Widget>[
+              Text('学期1'),
+              Text('学期2'),
+              Text('学期3'),
+              Text('学期4'),
+              Text('学期5'),
+              Text('学期6'),
+            ],
           ),
-          Text('Hi!'),
-          Text('Hi!'),
-          Text('Hi!'),
-        ],
-      ),
-    );
-  }
-
-  double _getTabTopPosition(int currentIndex) {
-    if (widget.index == currentIndex) return 0.0;
-    return tabListAnimation.value - tabDistance + (widget.index * tabDistance);
-  }
-
-  double _getTabBottomPosition(int currentIndex) {
-    if (widget.index == currentIndex) return 0.0;
-    return -tabListAnimation.value - tabDistance + (widget.index * tabDistance);
-  }
-
-  List<BoxShadow> _buildTabShadow() {
-    return <BoxShadow>[
-      BoxShadow(
-        color: Colors.grey[600],
-        blurRadius: 1.5, // soften the shadow
-        spreadRadius: 1.0, //extend the shadow
-        offset: Offset(
-          0, // Move to right horizontally
-          0, // Move to bottom Vertically
         ),
       ),
-    ];
-  }
-
-  // interface
-  void goToSurfaceOrHide() {
-    if (widget.index < currentIndex) return;
-    tabListAnimationController.reverse();
-  }
-
-  // interface
-  void goToDraggDownPosition() {
-    if (widget.index < currentIndex) return;
-    tabListAnimationController.reverse();
+    );
   }
 }
